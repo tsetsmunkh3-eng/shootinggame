@@ -1,0 +1,6 @@
+{
+  "name": "2D Pixel Shooting Game",
+  "description": "An arcade-style retro 2D space shooter with procedural pixel art graphics, rich weapon upgrades, challenging boss battles, gamepad support, and a high-score leaderboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
