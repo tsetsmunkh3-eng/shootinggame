@@ -19,11 +19,11 @@ interface LeaderboardProps {
 const LOCAL_STORAGE_KEY = 'pixel_shooter_leaderboard';
 
 const DEFAULT_SCORES: LeaderboardEntry[] = [
-  { id: '1', name: 'LAM', score: 99900, levelReached: 3, weaponUsed: 'RAILGUN', date: '2026-07-09' }, // Lamine Yamal
-  { id: '2', name: 'LEO', score: 85200, levelReached: 3, weaponUsed: 'LASER', date: '2026-07-08' },
-  { id: '3', name: 'CR7', score: 77700, levelReached: 3, weaponUsed: 'ROCKET', date: '2026-07-07' },
-  { id: '4', name: 'NEY', score: 54000, levelReached: 2, weaponUsed: 'BLASTER', date: '2026-07-06' },
-  { id: '5', name: 'KDB', score: 42100, levelReached: 2, weaponUsed: 'LASER', date: '2026-07-05' },
+  { id: '1', name: 'LAM', score: 149900, levelReached: 5, weaponUsed: 'RAILGUN', date: '2026-07-09' }, // Lamine Yamal
+  { id: '2', name: 'LEO', score: 125200, levelReached: 5, weaponUsed: 'LASER', date: '2026-07-08' },
+  { id: '3', name: 'CR7', score: 117700, levelReached: 5, weaponUsed: 'ROCKET', date: '2026-07-07' },
+  { id: '4', name: 'NEY', score: 84000, levelReached: 3, weaponUsed: 'BLASTER', date: '2026-07-06' },
+  { id: '5', name: 'KDB', score: 62100, levelReached: 2, weaponUsed: 'LASER', date: '2026-07-05' },
 ];
 
 export default function Leaderboard({
@@ -176,7 +176,7 @@ export default function Leaderboard({
                   {entry.score.toLocaleString()}
                 </span>
                 <span className="col-span-3 text-center text-xs text-zinc-400">
-                  {entry.levelReached === 3 ? 'CLEAR' : `LV ${entry.levelReached}`}
+                  {entry.levelReached === 5 ? 'CLEAR' : `LV ${entry.levelReached}`}
                 </span>
               </div>
             );

@@ -76,6 +76,7 @@ export default function GameCanvas({
     bossSpawned: false,
     screenShake: 0,
     levelTimer: 0,
+    levelKills: 0,
     isVictoryTriggered: false,
     isGameOverTriggered: false,
   });
@@ -246,6 +247,7 @@ export default function GameCanvas({
     stateRef.current.stats = { score: 0, enemiesKilled: 0, damageDealt: 0, timePlayed: 0, currentLevel: 1 };
     stateRef.current.bossSpawned = false;
     stateRef.current.levelTimer = 0;
+    stateRef.current.levelKills = 0;
     stateRef.current.isVictoryTriggered = false;
     stateRef.current.isGameOverTriggered = false;
 
@@ -405,9 +407,10 @@ export default function GameCanvas({
           }
         }
 
-        // Level threshold to trigger boss: kill 10 * level enemies, or 35 seconds elapsed
-        const requiredKills = s.stats.currentLevel * 10;
-        if (s.stats.enemiesKilled >= requiredKills || s.stats.timePlayed > s.stats.currentLevel * 30) {
+        // Level threshold to trigger boss: kill 10 enemies in this level, or 30 seconds elapsed in this level
+        const requiredKills = 10;
+        const requiredTime = 30 * 60; // 30 seconds (at 60 FPS)
+        if (s.levelKills >= requiredKills || s.levelTimer > requiredTime) {
           spawnBossCruiser();
         }
       }
@@ -498,6 +501,8 @@ export default function GameCanvas({
         } else if (e.type === 'shield') {
           // Back-and-forth cover shield
           e.x += e.vx;
+          if (e.x < 50) e.vx = Math.abs(e.vx);
+          if (e.x > GAME_WIDTH - 50) e.vx = -Math.abs(e.vx);
           if (e.y < 120) e.y += 0.5;
         } else if (e.type === 'kamikaze') {
           // Direct tracking rushing attack!
@@ -524,8 +529,9 @@ export default function GameCanvas({
         }
       });
 
-      // Filter out enemies that escape off screen
+      // Filter out enemies that are dead or escape off screen
       s.enemies = s.enemies.filter(e => {
+        if (e.hp <= 0) return false;
         if (e.y > GAME_HEIGHT + 50) return false;
         return true;
       });
@@ -575,8 +581,14 @@ export default function GameCanvas({
       ctx.globalAlpha = 1.0;
 
       // Draw background grid under grid level
-      if (s.stats.currentLevel === 3) {
-        ctx.strokeStyle = 'rgba(153, 51, 255, 0.08)';
+      if (s.stats.currentLevel >= 3) {
+        let gridColor = 'rgba(153, 51, 255, 0.08)';
+        if (s.stats.currentLevel === 4) {
+          gridColor = 'rgba(16, 185, 129, 0.06)';
+        } else if (s.stats.currentLevel === 5) {
+          gridColor = 'rgba(239, 68, 68, 0.1)';
+        }
+        ctx.strokeStyle = gridColor;
         ctx.lineWidth = 1;
         gridLines.forEach(y => {
           ctx.beginPath();
@@ -634,9 +646,15 @@ export default function GameCanvas({
         ctx.shadowColor = '#00ffff';
         ctx.shadowBlur = 10;
         
+        let lvlName = 'ASTEROID OUTPOST';
+        if (s.stats.currentLevel === 2) lvlName = 'PLASMA NEBULA';
+        else if (s.stats.currentLevel === 3) lvlName = 'CORE HYPERION';
+        else if (s.stats.currentLevel === 4) lvlName = 'QUANTUM VOID';
+        else if (s.stats.currentLevel === 5) lvlName = 'OMEGA ECLIPSE STATION';
+
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         ctx.font = '900 24px monospace';
-        ctx.fillText(`LEVEL ${s.stats.currentLevel}: ${s.stats.currentLevel === 1 ? 'ASTEROID OUTPOST' : s.stats.currentLevel === 2 ? 'PLASMA NEBULA' : 'CORE HYPERION'}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
+        ctx.fillText(`LEVEL ${s.stats.currentLevel}: ${lvlName}`, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20);
         
         ctx.fillStyle = '#00ffff';
         ctx.font = 'bold 12px monospace';
@@ -886,6 +904,12 @@ export default function GameCanvas({
       } else if (s.stats.currentLevel === 3) {
         name = 'OMNI DESTROYER';
         color = '#ec4899';
+      } else if (s.stats.currentLevel === 4) {
+        name = 'QUANTUM SINGULARITY';
+        color = '#10b981';
+      } else if (s.stats.currentLevel === 5) {
+        name = 'OMEGA ECLIPSE';
+        color = '#ef4444';
       }
 
       s.boss = {
@@ -1039,7 +1063,7 @@ export default function GameCanvas({
             });
           }
         }
-      } else {
+      } else if (b.level === 3) {
         // BOSS 3: Omni Destroyer (The Ultimate Challenge!)
         b.shootCooldown = b.state === 'angry' ? 30 : 50;
         
@@ -1073,6 +1097,67 @@ export default function GameCanvas({
           radius: 5,
           isEnemy: true,
         });
+      } else if (b.level === 4) {
+        // BOSS 4: Quantum Singularity (Fast emerald bouncing shots or rapid crossing lasers)
+        b.shootCooldown = b.state === 'angry' ? 35 : 55;
+        // Sweeping cross shots
+        for (let i = -2; i <= 2; i++) {
+          s.bullets.push({
+            id: bulletId(),
+            x: b.x + i * 25,
+            y: b.y + 20,
+            vx: i * 1.5,
+            vy: 4.5,
+            type: 'LASER',
+            damage: 12,
+            color: '#10b981',
+            radius: 3,
+            isEnemy: true,
+          });
+        }
+        // Occasional homing green rockets
+        if (b.stateTimer % 90 === 0) {
+          const angle = Math.atan2(p.y - b.y, p.x - b.x);
+          s.bullets.push({
+            id: bulletId(),
+            x: b.x,
+            y: b.y + 30,
+            vx: Math.cos(angle) * 4,
+            vy: Math.sin(angle) * 4,
+            type: 'ROCKET',
+            damage: 20,
+            color: '#10b981',
+            radius: 5,
+            isEnemy: true,
+          });
+        }
+      } else {
+        // BOSS 5: Omega Eclipse (The Ultimate Overlord!)
+        b.shootCooldown = b.state === 'angry' ? 25 : 45;
+        
+        // Massive spiral cross fan of death
+        const count = b.state === 'angry' ? 16 : 8;
+        for (let i = 0; i < count; i++) {
+          const angle = (i * Math.PI * 2 / count) + (b.stateTimer * 0.2);
+          s.bullets.push({
+            id: bulletId(),
+            x: b.x,
+            y: b.y + 10,
+            vx: Math.cos(angle) * (b.state === 'angry' ? 5.2 : 4.0),
+            vy: Math.sin(angle) * (b.state === 'angry' ? 5.2 : 4.0),
+            type: 'BLASTER',
+            damage: 10,
+            color: '#ef4444',
+            radius: 4,
+            isEnemy: true,
+          });
+        }
+
+        // Heavy central rail beams
+        s.bullets.push(
+          { id: bulletId(), x: b.x - 40, y: b.y + 30, vx: -0.5, vy: 9, type: 'RAILGUN', damage: 25, color: '#ffffff', radius: 5, isEnemy: true },
+          { id: bulletId(), x: b.x + 40, y: b.y + 30, vx: 0.5, vy: 9, type: 'RAILGUN', damage: 25, color: '#ffffff', radius: 5, isEnemy: true }
+        );
       }
     };
 
@@ -1137,6 +1222,7 @@ export default function GameCanvas({
               s.screenShake = Math.max(s.screenShake, 5);
               s.stats.score += e.scoreValue;
               s.stats.enemiesKilled++;
+              s.levelKills++;
               onScoreUpdate(s.stats.score);
               spawnSparks(e.x, e.y, e.color, 15);
               triggerChanceUpgradeDrop(e.x, e.y);
@@ -1325,7 +1411,7 @@ export default function GameCanvas({
       const s = stateRef.current;
       if (s.isVictoryTriggered) return;
 
-      if (s.stats.currentLevel < 3) {
+      if (s.stats.currentLevel < 5) {
         // Progress to next Level!
         s.stats.currentLevel++;
         s.bossSpawned = false;
@@ -1333,6 +1419,7 @@ export default function GameCanvas({
         setIsBossActive(false);
         setBossHpPercent(null);
         s.levelTimer = 0; // reset for level banner splash
+        s.levelKills = 0; // reset level kills for new level
         sfx.playVictoryTheme();
         
         // Boost user shield/hp slightly on clear
